@@ -20,16 +20,15 @@ use App\Base\Schedule\Models\ScheduleSuppression;
 use App\Base\Schedule\Services\ScheduleBoard;
 use App\Base\Schedule\Services\ScheduleConfigurationGate;
 use App\Base\Schedule\Services\ScheduleHistoryPruner;
+use App\Base\Schedule\Services\ScheduleOverrideWriter;
 use App\Base\Schedule\Services\ScheduleRunRecorder;
 use App\Base\Settings\Contracts\SettingsService;
 use Cron\CronExpression;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
@@ -350,48 +349,12 @@ class Index extends Component
             return;
         }
 
-        // Stale-edit guard, atomic (#411 review): a read-then-write check
-        // leaves a window where a concurrent save lands between the read and
-        // the write and is silently overwritten. Instead the write itself
-        // carries the expectation — INSERT relies on the source+key unique
-        // index to refuse a row that appeared meanwhile, and UPDATE matches
-        // the expression this operator started editing from, so zero
-        // affected rows IS the staleness verdict.
-        $saved = $this->withSchedulerConfigurationLock($key, function () use ($key, $task, $expression): bool {
-            if (($this->cronVersion ?? '') === '') {
-                try {
-                    // The unique-index violation IS the staleness verdict, but
-                    // on PostgreSQL a failed statement aborts the whole
-                    // enclosing transaction (25P02) — here, the configuration
-                    // gate this closure runs inside. A nested transaction
-                    // issues a SAVEPOINT, so the refusal rolls back only the
-                    // attempted INSERT and the gate transaction stays usable.
-                    // SQLite reaches the same outcome through the same
-                    // savepoint, so both production drivers agree.
-                    DB::transaction(fn () => ScheduleOverride::query()->create(
-                        ['source' => 'scheduler', 'key' => $key, 'name' => $task->name, 'expression' => $expression],
-                    ));
-                } catch (UniqueConstraintViolationException) {
-                    return false;
-                }
-
-                return true;
-            }
-
-            $override = ScheduleOverride::query()
-                ->where('source', 'scheduler')
-                ->where('key', $key)
-                ->lockForUpdate()
-                ->first();
-
-            if ($override === null || $override->expression !== $this->cronVersion) {
-                return false;
-            }
-
-            $override->fill(['name' => $task->name, 'expression' => $expression])->save();
-
-            return true;
-        });
+        $saved = app(ScheduleOverrideWriter::class)->saveIfUnchanged(
+            $key,
+            $task->name,
+            $expression,
+            $this->cronVersion ?? '',
+        );
 
         if (! $saved) {
             $this->addError('cronDraft', __('This cadence was changed by someone else while you were editing — review the current value and try again.'));
