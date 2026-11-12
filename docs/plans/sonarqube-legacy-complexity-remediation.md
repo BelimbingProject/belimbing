@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last Updated: 2026-10-31
+Last Updated: 2026-11-11
 
 Sources: SonarCloud project `BelimbingApp_lara`, branch `main`; current open findings retrieved 2026-10-30; SonarCloud PR #1010 analysis
 
@@ -52,6 +52,9 @@ Evidence: `tests/Feature/Database/BackupsIndexTest.php` covers valid, malformed,
 Evidence: protected SQL token copying is separated from statement-boundary scanning; `MigrationSourceParserTest` covers quoted, comment, and dollar-quoted semicolon handling.
 - [x] Decompose catalog discovery in `App\Base\Foundation\Services\DomainCatalog` without changing discovery order. `{root}/gpt-5`
 - [x] Decompose the three flagged checks in `App\Base\Foundation\Services\ModuleCheck` while retaining complete diagnostic output. `{root}/gpt-5`
+- [x] Move `Schedule\Livewire\Index`'s atomic scheduler override write into `ScheduleOverrideWriter`, preserving its configuration gate, stale-edit verdict, and PostgreSQL savepoint behavior. `{root}/gpt-5`
+
+Evidence: `ScheduleCronOverrideTest` preserves create, update, stale-edit, reset, and audit behavior; `ScheduleConfigurationGateConcurrencyTest` remains registered in the PostgreSQL CI lane.
 - [ ] Decompose source installation and migration rollback paths in `App\Base\Foundation\Services\SourceRepositoryInstaller` without broadening installation authority.
   - [x] Move cloned-source module, manifest, dependency, and migration-path validation into `SourceRepositoryCheckoutValidator`, retaining the installer as the only clone/migration/rollback/reload authority. `{root}/gpt-5`
   - [ ] Isolate the installer’s remaining migration and rollback orchestration only when its failure-state contract can remain equally explicit.
