@@ -1,7 +1,7 @@
 # base-sonar-class-size-debt
 
-**Status:** Proposed
-**Last Updated:** 2026-10-19
+**Status:** In progress
+**Last Updated:** 2026-11-14
 **Sources:** SonarCloud `php:S1448` findings for `BelimbingApp_lara` on `main`; `D:\repo\belimbing\.agents\skills\sonarqube-fix\SKILL.md`
 **Agents:** Codex/GPT-5
 
@@ -37,8 +37,9 @@ Treat Livewire page classes as orchestration shells. Move persistence, projectio
 
 ### Base Foundation
 
+- [x] Extract manifest collection normalization from `ModuleManifestReader` while preserving its public reader API and manifest semantics. {root/GPT-5}
 - [ ] Reduce `DomainCatalog` discovery complexity by separating topology filtering from catalog assembly, with catalog/discovery tests covering the same enabled-module cases.
-- [ ] Split `ModuleManifestReader` into manifest loading, dependency verification, and parse-normalization collaborators with fixture coverage.
+- [ ] Review whether manifest loading or dependency verification has a further cohesive boundary after parse normalization; do not split either mechanically.
 - [ ] Split `SourceRepositoryInstaller` install orchestration from checkout validation and migration/reload recovery.
 - [ ] Reduce `ModuleCheck` validation complexity by extracting named verification phases without changing reported check results.
 
