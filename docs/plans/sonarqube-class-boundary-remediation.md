@@ -1,6 +1,6 @@
 # SonarQube class-boundary remediation
 
-**Status:** In progress — immediate complexity work is merged; Chat attachment presentation is extracted and awaiting validation.
+**Status:** In progress — immediate complexity work is merged; Chat attachment presentation is extracted and validated, awaiting SonarQube reanalysis.
 
 **Last Updated:** 2026-11-15
 
@@ -54,6 +54,7 @@ Routes, Livewire public properties/actions, persisted values, model relations, a
 ### Core interaction and model boundaries
 
 - [x] Extract Chat attachment presentation from `Core/AI/Livewire/Chat` into `FormatsChatAttachments`, preserving its private mapping and attachment-route contract. {root/GPT-5}
+- Evidence: `tests/Feature/Core/AI/ChatViewTest.php` and `tests/Feature/Core/AI/ChatConcurrentSessionLifecycleTest.php` pass (18 tests, 84 assertions); Pint passes. `Chat` now declares 17 methods; SonarQube reanalysis remains the authoritative confirmation that `php:S1448` is removed.
 - [ ] Separate `LifecycleControlService` at named lifecycle seams while preserving all provider/control-plane behavior.
 - [ ] Extract cohesive presentation support from the Company and User Show components only when it avoids coupling their distinct authorization and state behavior.
 - [ ] Move non-intrinsic User behavior to a focused collaborator or concern, leaving relations, casts, and identity behavior visibly owned by the model.
