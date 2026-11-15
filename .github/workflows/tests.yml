@@ -326,7 +326,11 @@ jobs:
   # registered in this job's run steps below - a self-skip alone runs nowhere.
   # Do not replace the main job with it. See tests/AGENTS.md "Database Drivers".
   postgres-mirror:
-    runs-on: ubuntu-latest
+    # The PostgreSQL mirror suite exercises the runner-provided PDO stack as
+    # well as PostgreSQL. Keep it on the validated image while Ubuntu 26.04's
+    # changed stack is investigated; ubuntu-latest moved to 26.04 and made the
+    # otherwise unchanged fixture review every selected table as blocked.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: Testing
     env:
