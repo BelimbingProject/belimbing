@@ -380,7 +380,11 @@ jobs:
       - name: Install PostgreSQL client tools
         run: |
           sudo apt-get update
-          sudo apt-get install --yes postgresql-client-16
+          # ubuntu-latest moved to 26.04, whose repositories no longer retain
+          # the version-specific PostgreSQL 16 client package. The supported
+          # distribution client remains wire-compatible with the PostgreSQL 16
+          # service used by this job.
+          sudo apt-get install --yes postgresql-client
           pg_dump --version
           psql --version
 
