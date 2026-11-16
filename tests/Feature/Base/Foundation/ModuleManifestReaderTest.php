@@ -72,6 +72,17 @@ it('reads extension manifests from owner and module depth', function (): void {
             'blb' => [
                 'module' => ACME_PAYROLL_MODULE,
                 'version' => '1.2.3',
+                'requires-modules' => ['acme/core' => '^1.0', 42 => false],
+                'optional-modules' => ['acme/analytics' => null],
+                'publishes-events' => ['App\\Events\\PayrollRan', 42],
+                'consumes-events' => ['App\\Events\\PaydayStarted'],
+                'shared-tables' => ['payroll_runs'],
+                'runtime-requirements' => ['pcntl'],
+                'feature-flags' => [
+                    'payroll.beta' => ['default' => true, 'description' => 'Enables the beta payroll flow.'],
+                    'payroll.export' => false,
+                    42 => true,
+                ],
             ],
         ],
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
@@ -82,7 +93,17 @@ it('reads extension manifests from owner and module depth', function (): void {
         expect($manifests)->toHaveCount(1)
             ->and($manifests[0]->name)->toBe(ACME_PAYROLL_MODULE)
             ->and($manifests[0]->module)->toBe(ACME_PAYROLL_MODULE)
-            ->and($manifests[0]->version)->toBe('1.2.3');
+            ->and($manifests[0]->version)->toBe('1.2.3')
+            ->and($manifests[0]->requiresModules)->toBe(['acme/core' => '^1.0'])
+            ->and($manifests[0]->optionalModules)->toBe(['acme/analytics' => '*'])
+            ->and($manifests[0]->publishesEvents)->toBe(['App\\Events\\PayrollRan'])
+            ->and($manifests[0]->consumesEvents)->toBe(['App\\Events\\PaydayStarted'])
+            ->and($manifests[0]->sharedTables)->toBe(['payroll_runs'])
+            ->and($manifests[0]->runtimeRequirements)->toBe(['pcntl'])
+            ->and($manifests[0]->featureFlags)->toBe([
+                'payroll.beta' => ['default' => true, 'description' => 'Enables the beta payroll flow.'],
+                'payroll.export' => ['default' => false, 'description' => ''],
+            ]);
     } finally {
         File::deleteDirectory($root);
     }

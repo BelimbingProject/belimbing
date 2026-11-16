@@ -183,6 +183,64 @@ it('renders empty-session quick prompts for the active page url', function (): v
         ->assertSee('Create employee');
 });
 
+it('maps persisted chat attachments to their view contract without exposing malformed entries', function (): void {
+    $user = createChatViewFixture();
+    test()->actingAs($user);
+
+    $session = app(SessionManager::class)->create(Employee::LARA_ID);
+    app(MessageManager::class)->appendUserMessage(Employee::LARA_ID, $session->id, 'No attachments here.');
+    app(MessageManager::class)->appendUserMessage(Employee::LARA_ID, $session->id, 'Please review these files.', [
+        'attachments' => [
+            [
+                'id' => 'att_image',
+                'kind' => 'image',
+                'mime_type' => 'image/png',
+                'original_name' => 'diagram.png',
+                'size' => 512,
+            ],
+            [
+                'id' => 'att_defaults',
+            ],
+            ['id' => ''],
+            'not-an-attachment',
+        ],
+    ]);
+
+    $messages = Livewire::test(Chat::class)
+        ->set('selectedSessionId', $session->id)
+        ->instance()
+        ->render()
+        ->getData()['messages'];
+
+    expect($messages[0]->meta['attachments_ui'])->toBe([])
+        ->and($messages[1]->meta['attachments_ui'])->toBe([
+            [
+                'id' => 'att_image',
+                'kind' => 'image',
+                'mime_type' => 'image/png',
+                'original_name' => 'diagram.png',
+                'size' => 512,
+                'url' => route('ai.chat.attachments.show', [
+                    'employeeId' => Employee::LARA_ID,
+                    'sessionId' => $session->id,
+                    'attachmentId' => 'att_image',
+                ]).'?mime=image%2Fpng',
+            ],
+            [
+                'id' => 'att_defaults',
+                'kind' => 'document',
+                'mime_type' => 'application/octet-stream',
+                'original_name' => 'att_defaults',
+                'size' => null,
+                'url' => route('ai.chat.attachments.show', [
+                    'employeeId' => Employee::LARA_ID,
+                    'sessionId' => $session->id,
+                    'attachmentId' => 'att_defaults',
+                ]).'?mime=application%2Foctet-stream',
+            ],
+        ]);
+});
+
 it('stores a client-captured active page snapshot by default', function (): void {
     Queue::fake();
     $user = createChatViewFixture();

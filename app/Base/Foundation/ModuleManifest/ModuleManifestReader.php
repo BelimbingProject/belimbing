@@ -26,6 +26,7 @@ class ModuleManifestReader
         private readonly array $rootPaths,
         private readonly ?ModuleVersionConstraint $versionConstraint = null,
         private readonly ?string $projectRoot = null,
+        private readonly ModuleManifestNormalizer $normalizer = new ModuleManifestNormalizer,
     ) {}
 
     /**
@@ -207,13 +208,13 @@ class ModuleManifestReader
             path: dirname($composerPath),
             version: (string) ($blb['version'] ?? ''),
             description: (string) ($blb['description'] ?? ($data['description'] ?? '')),
-            requiresModules: $this->normaliseModuleMap($blb['requires-modules'] ?? []),
-            optionalModules: $this->normaliseModuleMap($blb['optional-modules'] ?? []),
-            publishesEvents: $this->normaliseStringList($blb['publishes-events'] ?? []),
-            consumesEvents: $this->normaliseStringList($blb['consumes-events'] ?? []),
-            sharedTables: $this->normaliseStringList($blb['shared-tables'] ?? []),
-            runtimeRequirements: $this->normaliseStringList($blb['runtime-requirements'] ?? []),
-            featureFlags: $this->normaliseFeatureFlags($blb['feature-flags'] ?? []),
+            requiresModules: $this->normalizer->moduleMap($blb['requires-modules'] ?? []),
+            optionalModules: $this->normalizer->moduleMap($blb['optional-modules'] ?? []),
+            publishesEvents: $this->normalizer->stringList($blb['publishes-events'] ?? []),
+            consumesEvents: $this->normalizer->stringList($blb['consumes-events'] ?? []),
+            sharedTables: $this->normalizer->stringList($blb['shared-tables'] ?? []),
+            runtimeRequirements: $this->normalizer->stringList($blb['runtime-requirements'] ?? []),
+            featureFlags: $this->normalizer->featureFlags($blb['feature-flags'] ?? []),
         );
     }
 
@@ -388,70 +389,5 @@ class ModuleManifestReader
             'composer' => $data,
             'blb' => $blb,
         ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function normaliseModuleMap(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        $out = [];
-        foreach ($value as $key => $constraint) {
-            if (! is_string($key)) {
-                continue;
-            }
-            $out[$key] = is_string($constraint) ? $constraint : '*';
-        }
-
-        return $out;
-    }
-
-    /**
-     * @return list<string>
-     */
-    /**
-     * @return array<string, array{default: bool, description: string}>
-     */
-    private function normaliseFeatureFlags(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        $flags = [];
-        foreach ($value as $flag => $meta) {
-            if (! is_string($flag) || $flag === '') {
-                continue;
-            }
-
-            if (! is_array($meta)) {
-                $meta = ['default' => (bool) $meta];
-            }
-
-            $flags[$flag] = [
-                'default' => (bool) ($meta['default'] ?? false),
-                'description' => is_string($meta['description'] ?? null) ? (string) $meta['description'] : '',
-            ];
-        }
-
-        ksort($flags);
-
-        return $flags;
-    }
-
-    private function normaliseStringList(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        return array_values(array_filter(
-            array_map(fn ($v): string => is_string($v) ? $v : '', $value),
-            fn (string $v): bool => $v !== '',
-        ));
     }
 }
